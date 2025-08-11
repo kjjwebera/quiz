@@ -126,6 +126,42 @@ abstract class quiz_attempts_report_table extends table_sql {
             return '';
         }
     }
+    //
+    /**
+     * Generate the display of the user's picture column.
+     * @param object $attempt the table row being output.
+     * @return string HTML content to go inside the td.
+     */
+    public function col_username($attempt) { //for quiz add report field
+        global $OUTPUT;
+        //print_object($attempt);die;
+        return html_writer::tag('h5',$attempt->username);
+    }
+    /**
+     * Generate the display of the user's picture column.
+     * @param object $attempt the table row being output.
+     * @return string HTML content to go inside the td.
+     */
+    public function col_batchcode($attempt) { //for quiz add report field
+        global $OUTPUT,$DB;
+        //print_object($attempt);die;
+        $field = $DB->get_record('user_info_field', ['shortname' => 'batchcode'], '*', MUST_EXIST);
+        $batchcodearry = $DB->get_record("user_info_data", ['fieldid' => $field->id,'userid'=>$attempt->userid]);;
+        return html_writer::tag('h5',$batchcodearry->data);
+    }
+    /**
+     * Generate the display of the user's picture column.
+     * @param object $attempt the table row being output.
+     * @return string HTML content to go inside the td.
+     */
+    public function col_centercode($attempt) { //for quiz add report field
+        global $OUTPUT,$DB;
+        //print_object($attempt);die;
+        $field = $DB->get_record('user_info_field', ['shortname' => 'centercode'], '*', MUST_EXIST);
+        $centercodearry = $DB->get_record("user_info_data", ['fieldid' => $field->id,'userid'=>$attempt->userid]);
+        //print_object($centercodearry);die;
+        return html_writer::tag('h5',$centercodearry->data);
+    }
 
     /**
      * Generate the display of the user's picture column.
@@ -140,6 +176,8 @@ abstract class quiz_attempts_report_table extends table_sql {
         $user->id = $attempt->userid;
         return $OUTPUT->user_picture($user);
     }
+    //
+    
 
     /**
      * Generate the display of the user's full name column.

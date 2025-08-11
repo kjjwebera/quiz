@@ -189,24 +189,42 @@ abstract class quiz_attempts_report extends quiz_default_report {
      */
     protected function add_user_columns($table, &$columns, &$headers) {
         global $CFG;
+        
+        
         if (!$table->is_downloading() && $CFG->grade_report_showuserimage) {
             $columns[] = 'picture';
             $headers[] = '';
         }
+        if(!$table->is_downloading()){ ////for quiz add report field
+           $columns[] = 'username';
+           $headers[] = 'Username'; 
+        }
         if (!$table->is_downloading()) {
             $columns[] = 'fullname';
-            $headers[] = get_string('name');
+            $headers[] = 'Full Name';
+            //
+            
         } else {
             $columns[] = 'lastname';
             $headers[] = get_string('lastname');
             $columns[] = 'firstname';
             $headers[] = get_string('firstname');
+            //
+
         }
 
         $extrafields = get_extra_user_fields($this->context);
         foreach ($extrafields as $field) {
             $columns[] = $field;
             $headers[] = get_user_field_name($field);
+        }
+        //
+        if(!$table->is_downloading()){ //for quiz add report field
+           $columns[] = 'batchcode';
+           $headers[] = 'Batch Code';
+           //
+           $columns[] = 'centercode';
+           $headers[] = 'Center Code';
         }
     }
 
