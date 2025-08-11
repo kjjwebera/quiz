@@ -460,6 +460,7 @@ abstract class quiz_attempts_report_table extends table_sql {
                 quiza.id AS attempt,
                 u.id AS userid,
                 u.idnumber, ' . $allnames . ',
+                u.username,
                 u.picture,
                 u.imagealt,
                 u.institution,
