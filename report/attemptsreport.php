@@ -189,19 +189,15 @@ abstract class quiz_attempts_report extends quiz_default_report {
      */
     protected function add_user_columns($table, &$columns, &$headers) {
         global $CFG;
-        
-        
+        $mode = optional_param('mode','',PARAM_RAW);
         if (!$table->is_downloading() && $CFG->grade_report_showuserimage) {
             $columns[] = 'picture';
             $headers[] = '';
         }
-        if(!$table->is_downloading()){ ////for quiz add report field
-           $columns[] = 'username';
-           $headers[] = 'Username'; 
-        }
+        
         if (!$table->is_downloading()) {
             $columns[] = 'fullname';
-            $headers[] = 'Full Name';
+            $headers[] = get_string('name');
             //
             
         } else {
@@ -219,7 +215,11 @@ abstract class quiz_attempts_report extends quiz_default_report {
             $headers[] = get_user_field_name($field);
         }
         //
-        if(!$table->is_downloading()){ //for quiz add report field
+        if(!$table->is_downloading() && $mode == 'responses'){ //for quiz add report field
+
+           $columns[] = 'username';
+           $headers[] = 'Username'; 
+            
            $columns[] = 'batchcode';
            $headers[] = 'Batch Code';
            //

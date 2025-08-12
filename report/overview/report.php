@@ -178,24 +178,22 @@ class quiz_overview_report extends quiz_attempts_report {
                 //
 
             }
-             //
-            
+        
             //
             $this->add_user_columns($table, $columns, $headers);
-            if(!$table->is_downloading()){
-                $columns[] = 'username';
-                $headers[] = 'Username';
-            }
-            
-            //
             if (!$table->is_downloading()){ //for quiz add report field
+                if(!$table->is_downloading()){
+                    $columns[] = 'username';
+                    $headers[] = 'Username';
+                }
                 $columns[] = 'batchcode';
                 $headers[] = 'Batch Code';
                 //
                 $columns[] = 'centercode';
                 $headers[] = 'Center Code';
             }
-            
+            //
+
             $this->add_state_column($columns, $headers);
             $this->add_time_columns($columns, $headers);
 
