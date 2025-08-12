@@ -126,6 +126,51 @@ abstract class quiz_attempts_report_table extends table_sql {
             return '';
         }
     }
+    //
+    /**
+     * Generate the display of the user's picture column.
+     * @param object $attempt the table row being output.
+     * @return string HTML content to go inside the td.
+     */
+    public function col_username($attempt) { //for quiz add report field
+        global $OUTPUT;
+        //print_object($attempt);die;
+        if ($this->is_downloading()) {
+            return $attempt->username;
+        }
+        return html_writer::tag('h5',$attempt->username);
+    }
+    /**
+     * Generate the display of the user's picture column.
+     * @param object $attempt the table row being output.
+     * @return string HTML content to go inside the td.
+     */
+    public function col_batchcode($attempt) { //for quiz add report field
+        global $OUTPUT,$DB;
+        //print_object($attempt);die;
+        $field = $DB->get_record('user_info_field', ['shortname' => 'batchcode'], '*', MUST_EXIST);
+        $batchcodearry = $DB->get_record("user_info_data", ['fieldid' => $field->id,'userid'=>$attempt->userid]);
+        if ($this->is_downloading()) {
+            return $batchcodearry->data;
+        }
+        return html_writer::tag('h5',$batchcodearry->data);
+    }
+    /**
+     * Generate the display of the user's picture column.
+     * @param object $attempt the table row being output.
+     * @return string HTML content to go inside the td.
+     */
+    public function col_centercode($attempt) { //for quiz add report field
+        global $OUTPUT,$DB;
+        //print_object($attempt);die;
+        $field = $DB->get_record('user_info_field', ['shortname' => 'centercode'], '*', MUST_EXIST);
+        $centercodearry = $DB->get_record("user_info_data", ['fieldid' => $field->id,'userid'=>$attempt->userid]);
+        //print_object($centercodearry);die;
+        if ($this->is_downloading()) {
+            return $centercodearry->data;
+        }
+        return html_writer::tag('h5',$centercodearry->data);
+    }
 
     /**
      * Generate the display of the user's picture column.
@@ -140,6 +185,8 @@ abstract class quiz_attempts_report_table extends table_sql {
         $user->id = $attempt->userid;
         return $OUTPUT->user_picture($user);
     }
+    //
+    
 
     /**
      * Generate the display of the user's full name column.
@@ -404,7 +451,7 @@ abstract class quiz_attempts_report_table extends table_sql {
      *     build the actual database query.
      */
     public function base_sql(\core\dml\sql_join $allowedstudentsjoins) {
-        global $DB;
+        global $DB,$USER;
 
         // Please note this uniqueid column is not the same as quiza.uniqueid.
         $fields = 'DISTINCT ' . $DB->sql_concat('u.id', "'#'", 'COALESCE(quiza.attempt, 0)') . ' AS uniqueid,';
@@ -422,6 +469,7 @@ abstract class quiz_attempts_report_table extends table_sql {
                 quiza.id AS attempt,
                 u.id AS userid,
                 u.idnumber, ' . $allnames . ',
+                u.username,
                 u.picture,
                 u.imagealt,
                 u.institution,
@@ -448,7 +496,7 @@ abstract class quiz_attempts_report_table extends table_sql {
             $from .= " AND (quiza.state <> :finishedstate OR $this->qmsubselect)";
             $params['finishedstate'] = quiz_attempt::FINISHED;
         }
-
+        $batchcodefilter = $this->options->batchcodefilter;
         switch ($this->options->attempts) {
             case quiz_attempts_report::ALL_WITH:
                 // Show all attempts, including students who are no longer in the course.
@@ -480,7 +528,122 @@ abstract class quiz_attempts_report_table extends table_sql {
             $params += $stateparams;
             $where .= " AND (quiza.state $statesql OR quiza.state IS NULL)";
         }
-
+        if($batchcodefilter && is_siteadmin($USER)){ //site admin and batch code
+            $selected_values = $batchcodefilter;
+            //die;
+            if($selected_values && is_array($selected_values)){
+              $final_result_set = array();
+              foreach($selected_values as $key=>$data){
+                $fieldid = $DB->get_field('user_info_field','id',['shortname'=>'batchcode']);
+                $batchsql = "select userid from {user_info_data} where fieldid=".$fieldid." and data in('".$data."')";
+                //echo $batchsql;die;
+                $batch_results = $DB->get_records_sql($batchsql);
+                //$mainset = array();
+                foreach ($batch_results as $rec) {
+                  $mainset = $rec->userid;
+                  $final_result_set[] = $mainset;
+                }
+              }
+            }
+            //print_r($final_result_set);die;
+            $where .= ' AND u.id in ('.implode(',',$final_result_set).')';
+            //echo $where;die;
+        }else if($batchcodefilter && !is_siteadmin($USER)){ // teacher batch code filter
+                $selected_values = $batchcodefilter;
+                //die;
+                if($selected_values && is_array($selected_values)){
+                  $final_result_set = array();
+                  foreach($selected_values as $key=>$data){
+                    if($data == 'all'){ // all selected by teacher
+                        $fieldid = $DB->get_field('user_info_field','id',['shortname'=>'batchcode']);
+                        $batchcodearry = $DB->get_recordset_sql("
+                                        SELECT DISTINCT uid.data
+                                        FROM {user_info_data} uid
+                                        WHERE uid.fieldid = :fieldid AND uid.userid = :userid AND uid.data IS NOT NULL AND uid.data <> ''
+                                        GROUP BY uid.data
+                                        ORDER BY uid.data ASC
+                                    ", ['fieldid' => $fieldid,'userid'=>$USER->id]);
+                        $main_loop = array();
+                        foreach($batchcodearry as $rec){
+                            $parts = explode(',', $rec->data); // split by comma
+                            foreach ($parts as $part) {
+                                $main_loop[] = trim($part); // remove extra spaces
+                            }
+                        }
+                        $batcharr = array_unique($main_loop);
+                        //print_r($batcharr);die;
+                        $selected_values = $batcharr;
+                        //die;
+                        if($selected_values && is_array($selected_values)){
+                          $final_result_set = array();
+                          foreach($selected_values as $key=>$data){
+                            $fieldid = $DB->get_field('user_info_field','id',['shortname'=>'batchcode']);
+                            $batchsql = "select userid from {user_info_data} where fieldid=".$fieldid." and data in('".$data."')";
+                            //echo $batchsql;die;
+                            $batch_results = $DB->get_records_sql($batchsql);
+                            //$mainset = array();
+                            foreach ($batch_results as $rec) {
+                              $mainset = $rec->userid;
+                              $final_result_set[] = $mainset;
+                            }
+                          }
+                        }
+                        //print_r($final_result_set);die;
+                        $where .= ' AND u.id in ('.implode(',',$final_result_set).')';
+                        break;
+                    }
+                    $fieldid = $DB->get_field('user_info_field','id',['shortname'=>'batchcode']);
+                    $batchsql = "select userid from {user_info_data} where fieldid=".$fieldid." and data in('".$data."')";
+                    //echo $batchsql;die;
+                    $batch_results = $DB->get_records_sql($batchsql);
+                    //$mainset = array();
+                    foreach ($batch_results as $rec) {
+                      $mainset = $rec->userid;
+                      $final_result_set[] = $mainset;
+                    }
+                  }
+                }
+                //print_r($final_result_set);die;
+                $where .= ' AND u.id in ('.implode(',',$final_result_set).')';
+            }else if(!$batchcodefilter && !is_siteadmin($USER)){ //for teacher defualt
+                $fieldid = $DB->get_field('user_info_field','id',['shortname'=>'batchcode']);
+                $batchcodearry = $DB->get_recordset_sql("
+                                SELECT DISTINCT uid.data
+                                FROM {user_info_data} uid
+                                WHERE uid.fieldid = :fieldid AND uid.userid = :userid AND uid.data IS NOT NULL AND uid.data <> ''
+                                GROUP BY uid.data
+                                ORDER BY uid.data ASC
+                            ", ['fieldid' => $fieldid,'userid'=>$USER->id]);
+                $main_loop = array();
+                foreach($batchcodearry as $rec){
+                    $parts = explode(',', $rec->data); // split by comma
+                    foreach ($parts as $part) {
+                        $main_loop[] = trim($part); // remove extra spaces
+                    }
+                }
+                $batcharr = array_unique($main_loop);
+                //print_r($batcharr);die;
+                $selected_values = $batcharr;
+                //die;
+                if($selected_values && is_array($selected_values)){
+                  $final_result_set = array();
+                  foreach($selected_values as $key=>$data){
+                    $fieldid = $DB->get_field('user_info_field','id',['shortname'=>'batchcode']);
+                    $batchsql = "select userid from {user_info_data} where fieldid=".$fieldid." and data in('".$data."')";
+                    //echo $batchsql;die;
+                    $batch_results = $DB->get_records_sql($batchsql);
+                    //$mainset = array();
+                    foreach ($batch_results as $rec) {
+                      $mainset = $rec->userid;
+                      $final_result_set[] = $mainset;
+                    }
+                  }
+                }
+                //print_r($final_result_set);die;
+                $where .= ' AND u.id in ('.implode(',',$final_result_set).')';
+            }
+            //batach code filter changes of sql ends
+ 
         return array($fields, $from, $where, $params);
     }
 

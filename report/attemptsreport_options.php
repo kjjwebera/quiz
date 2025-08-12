@@ -63,6 +63,8 @@ class mod_quiz_attempts_report_options {
      *      quiz_attempts_report::ENROLLED_WITHOUT or quiz_attempts_report::ENROLLED_ALL
      */
     public $attempts = quiz_attempts_report::ENROLLED_WITH;
+    //
+    public $batchcodefilter = [];
 
     /** @var int the currently selected group. 0 if no group is selected. */
     public $group = 0;
@@ -187,6 +189,8 @@ class mod_quiz_attempts_report_options {
         $this->group      = groups_get_activity_group($this->cm, true);
         $this->onlygraded = !empty($fromform->onlygraded);
         $this->pagesize   = $fromform->pagesize;
+        //
+        $this->batchcodefilter = $fromform->batchcodefilter;
 
         $this->states = array();
         foreach (self::$statefields as $field => $state) {
