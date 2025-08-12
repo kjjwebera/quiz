@@ -215,8 +215,8 @@ abstract class quiz_attempts_report extends quiz_default_report {
             $headers[] = get_user_field_name($field);
         }
         //
-        if(!$table->is_downloading() && $mode == 'responses'){ //for quiz add report field
-
+        if($mode == 'responses'){ //for quiz add report field
+           //add fields patcch
            $columns[] = 'username';
            $headers[] = 'Username'; 
             
@@ -225,6 +225,7 @@ abstract class quiz_attempts_report extends quiz_default_report {
            //
            $columns[] = 'centercode';
            $headers[] = 'Center Code';
+           //ends
         }
     }
 
