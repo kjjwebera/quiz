@@ -496,7 +496,6 @@ abstract class quiz_attempts_report_table extends table_sql {
             $from .= " AND (quiza.state <> :finishedstate OR $this->qmsubselect)";
             $params['finishedstate'] = quiz_attempt::FINISHED;
         }
-        $batchcodefilter = $this->options->batchcodefilter;
         switch ($this->options->attempts) {
             case quiz_attempts_report::ALL_WITH:
                 // Show all attempts, including students who are no longer in the course.
@@ -528,7 +527,10 @@ abstract class quiz_attempts_report_table extends table_sql {
             $params += $stateparams;
             $where .= " AND (quiza.state $statesql OR quiza.state IS NULL)";
         }
+        $batchcodefilter = ($this->options->batchcodefilter)?$this->options->batchcodefilter:optional_param('batchcode','',PARAM_RAW);
+        //print_object($this->options);die;
         if($batchcodefilter && is_siteadmin($USER)){ //site admin and batch code
+            //echo "batch";die;
             $selected_values = $batchcodefilter;
             //die;
             if($selected_values && is_array($selected_values)){
@@ -544,6 +546,22 @@ abstract class quiz_attempts_report_table extends table_sql {
                   $final_result_set[] = $mainset;
                 }
               }
+            }else{ //for pagination;
+                $batchcodefilter = str_replace('%2C',',',$batchcodefilter);
+                $selected_values = explode(',',$batchcodefilter);
+
+                $final_result_set = array();
+                foreach($selected_values as $key=>$data){
+                    $fieldid = $DB->get_field('user_info_field','id',['shortname'=>'batchcode']);
+                    $batchsql = "select userid from {user_info_data} where fieldid=".$fieldid." and data in('".$data."')";
+                    //echo $batchsql;die;
+                    $batch_results = $DB->get_records_sql($batchsql);
+                    //$mainset = array();
+                    foreach ($batch_results as $rec) {
+                      $mainset = $rec->userid;
+                      $final_result_set[] = $mainset;
+                    }
+                }
             }
             //print_r($final_result_set);die;
             $where .= ' AND u.id in ('.implode(',',$final_result_set).')';
@@ -602,6 +620,22 @@ abstract class quiz_attempts_report_table extends table_sql {
                       $final_result_set[] = $mainset;
                     }
                   }
+                }else{ //pagination
+                    $batchcodefilter = str_replace('%2C',',',$batchcodefilter);
+                    $selected_values = explode(',',$batchcodefilter);
+
+                    $final_result_set = array();
+                    foreach($selected_values as $key=>$data){
+                        $fieldid = $DB->get_field('user_info_field','id',['shortname'=>'batchcode']);
+                        $batchsql = "select userid from {user_info_data} where fieldid=".$fieldid." and data in('".$data."')";
+                        //echo $batchsql;die;
+                        $batch_results = $DB->get_records_sql($batchsql);
+                        //$mainset = array();
+                        foreach ($batch_results as $rec) {
+                          $mainset = $rec->userid;
+                          $final_result_set[] = $mainset;
+                        }
+                    }
                 }
                 //print_r($final_result_set);die;
                 $where .= ' AND u.id in ('.implode(',',$final_result_set).')';
