@@ -37,6 +37,7 @@ require_once($CFG->libdir . '/formslib.php');
 abstract class mod_quiz_attempts_report_form extends moodleform {
 
     protected function definition() {
+        global $DB,$USER;
         $mform = $this->_form;
 
         $mform->addElement('header', 'preferencespage',
@@ -50,7 +51,51 @@ abstract class mod_quiz_attempts_report_form extends moodleform {
 
         $this->standard_preference_fields($mform);
         $this->other_preference_fields($mform);
-
+        //added a filter Batch code UI
+        if ($USER) {
+            $batchcodefield = $DB->get_record('user_info_field', ['shortname' => 'batchcode'], '*', MUST_EXIST);
+            //
+            if(!is_siteadmin($USER)){ // teacher batch 
+                //echo 'ddd';die;
+                $batchcodearry = $DB->get_recordset_sql("
+                                SELECT DISTINCT uid.data
+                                FROM {user_info_data} uid
+                                WHERE uid.fieldid = :fieldid AND uid.userid = :userid AND uid.data IS NOT NULL AND uid.data <> ''
+                                GROUP BY uid.data
+                                ORDER BY uid.data ASC
+                            ", ['fieldid' => $batchcodefield->id,'userid'=>$USER->id]);
+            }else{
+                $batchcodearry = $DB->get_recordset_sql("
+                                    SELECT DISTINCT uid.data
+                                    FROM {user_info_data} uid
+                                    WHERE uid.fieldid = :fieldid AND uid.data IS NOT NULL AND uid.data <> ''
+                                    GROUP BY uid.data
+                                    ORDER BY uid.data ASC
+                                ", ['fieldid' => $batchcodefield->id]);
+            }
+            //
+            $main_loop = array();
+            foreach($batchcodearry as $rec){
+                $parts = explode(',', $rec->data); // split by comma
+                if(!is_siteadmin($USER)){
+                   $main_loop['all'] = 'ALL';
+                }
+                
+                foreach ($parts as $part) {
+                    $main_loop[trim($part)] = trim($part); // remove extra spaces
+                }
+            }
+            $batcharr = array_unique($main_loop);
+            //print_r($batcharr);die;
+            $options = array(                                                                                
+                'multiple' => true,                                                  
+                'noselectionstring' => get_string('noselection', 'assign'),
+                'class' => 'ignoredirty',         
+            );         
+            $mform->addElement('autocomplete', 'batchcodefilter', get_string('batchcodefilter', 'assign'), $batcharr, $options);
+            $mform->setType('batchcodefilter', PARAM_TEXT);
+        }
+        //ENDS BATCH FILTER
         $mform->addElement('submit', 'submitbutton',
                 get_string('showreport', 'quiz'));
     }
