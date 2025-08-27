@@ -115,12 +115,13 @@ class mod_quiz_attempts_report_options {
      * @return array URL parameter name => value.
      */
     protected function get_url_params() {
+        $result_batchcodefilter = is_array($this->batchcodefilter)?implode(',',$this->batchcodefilter):$this->batchcodefilter;
         $params = array(
             'id'         => $this->cm->id,
             'mode'       => $this->mode,
             'attempts'   => $this->attempts,
             'onlygraded' => $this->onlygraded,
-            'batchcode' => ($this->batchcodefilter)?urldecode(implode(',',$this->batchcodefilter)):urldecode(optional_param('batchcode','',PARAM_RAW)),
+            'batchcodefilter' => ($this->batchcodefilter)?$result_batchcodefilter:optional_param('batchcodefilter','',PARAM_RAW),
         );
 
         if ($this->states) {
@@ -167,11 +168,12 @@ class mod_quiz_attempts_report_options {
      * Get the current value of the settings to pass to the settings form.
      */
     public function get_initial_form_data() {
+        $result_batchcodefilter = is_array($this->batchcodefilter)?implode(',',$this->batchcodefilter):$this->batchcodefilter;
         $toform = new stdClass();
         $toform->attempts   = $this->attempts;
         $toform->onlygraded = $this->onlygraded;
         $toform->pagesize   = $this->pagesize;
-        $toform->batchcode = urldecode(implode(',',$this->batchcodefilter));
+        $toform->batchcodefilter = $result_batchcodefilter;
         if ($this->states) {
             foreach (self::$statefields as $field => $state) {
                 $toform->$field = in_array($state, $this->states);
@@ -192,7 +194,7 @@ class mod_quiz_attempts_report_options {
         $this->pagesize   = $fromform->pagesize;
         //
         $this->batchcodefilter = $fromform->batchcodefilter;
-        $this->batchcode = $fromform->batchcodefilter;
+        $this->batchcodefilter = $fromform->batchcodefilter;
         $this->states = array();
         foreach (self::$statefields as $field => $state) {
             if (!empty($fromform->$field)) {
@@ -209,7 +211,7 @@ class mod_quiz_attempts_report_options {
         $this->group      = groups_get_activity_group($this->cm, true);
         $this->onlygraded = optional_param('onlygraded', $this->onlygraded, PARAM_BOOL);
         $this->pagesize   = optional_param('pagesize', $this->pagesize, PARAM_INT);
-        $this->batchcode  = urldecode(optional_param('batchcode', $this->batchcodefilter, PARAM_RAW));
+        $this->batchcodefilter  = optional_param('batchcodefilter', $this->batchcodefilter, PARAM_RAW);
 
         $states = optional_param('states', '', PARAM_ALPHAEXT);
         if (!empty($states)) {
@@ -284,9 +286,9 @@ class mod_quiz_attempts_report_options {
 
         if ($this->pagesize < 1) {
             $this->pagesize = quiz_attempts_report::DEFAULT_PAGE_SIZE;
-            $this->batchcode = $this->options->batchcodefilter;
+            $this->batchcodefilter = $this->options->batchcodefilter;
         }
-         $this->batchcode = urldecode($this->options->batchcodefilter);
+        //$this->batchcodefilter = urldecode($this->options->batchcodefilter);
     }
 
     /**
